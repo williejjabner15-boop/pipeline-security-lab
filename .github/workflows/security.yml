@@ -1,0 +1,46 @@
+name: security
+on: [push, pull_request]
+
+permissions:
+  contents: read
+
+jobs:
+  secrets:
+    name: Secret gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Gitleaks - block on findings
+        run: |
+          docker run --rm -v "$GITHUB_WORKSPACE:/repo:ro" zricethezav/gitleaks:v8.24.3 \
+            git /repo --config /repo/.gitleaks.toml --redact --exit-code 1
+
+  sast:
+    name: SAST report
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Semgrep - report code findings
+        run: |
+          docker run --rm -v "$GITHUB_WORKSPACE:/src:ro" semgrep/semgrep:1.121.0 \
+            semgrep scan --config p/python --metrics=off /src/app.py
+
+  dependencies:
+    name: Dependency report
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Trivy - report vulnerable dependencies
+        run: |
+          docker run --rm -v "$GITHUB_WORKSPACE:/repo:ro" aquasec/trivy:0.61.1 \
+            fs --scanners vuln --exit-code 0 /repo
