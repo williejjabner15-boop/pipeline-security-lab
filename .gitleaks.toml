@@ -1,0 +1,8 @@
+title = "Default rules plus assignment fixture"
+[extend]
+useDefault = true
+
+[[rules]]
+id = "assignment-public-aws-example"
+description = "Public AWS example deliberately planted for this lab"
+regex = '''AKIAIOSFODNN7EXAMPLE'''
